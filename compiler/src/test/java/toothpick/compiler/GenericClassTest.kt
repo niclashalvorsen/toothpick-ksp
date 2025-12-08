@@ -41,8 +41,8 @@ class GenericClassTest {
               "ClassName",
               "RedundantVisibilityModifier",
             )
-            public class TestGeneric1__Factory : Factory<TestGeneric1> {
-              public override fun createInstance(scope: Scope): TestGeneric1 = TestGeneric1()
+            public class TestGeneric1__Factory : Factory<TestGeneric1<*>> {
+              public override fun createInstance(scope: Scope): TestGeneric1<*> = TestGeneric1<Any?>()
             
               public override fun getTargetScope(scope: Scope): Scope = scope
             
