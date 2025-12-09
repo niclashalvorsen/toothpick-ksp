@@ -19,7 +19,6 @@ package toothpick.compiler.factory.generators
 
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
@@ -28,12 +27,14 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.STAR
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.ksp.addOriginatingKSFile
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toKModifier
+import com.squareup.kotlinpoet.ksp.toTypeName
 import toothpick.Factory
 import toothpick.MemberInjector
 import toothpick.Scope
@@ -60,14 +61,20 @@ internal class FactoryGenerator(
     val sourceClassName: ClassName = sourceClass.toClassName()
     val generatedClassName: ClassName = sourceClassName.factoryClassName
 
-    val parameterizedSourceClassname = resolveTypeNames(sourceClass)
+    val parameterizedSourceClassname: TypeName= resolveSourceClassTypeNames()
 
-    private fun resolveTypeNames(clazz: KSClassDeclaration): ClassName {
-        val genericTypeNames: List<TypeName> = sourceClass.typeParameters.map {
-            ANY // Just map everything to "ANY" todo document that it will work
+    private fun resolveSourceClassTypeNames(): TypeName {
+        if (sourceClass.typeParameters.isEmpty()) return sourceClassName
+        val genericTypeNames: List<TypeName> = sourceClass.typeParameters.map { type ->
+            val bounds = type.bounds.toList()
+            if (bounds.isEmpty()) {
+                STAR
+            } else {
+                bounds.first().toTypeName()
+            }
         }
-        val typedSourceClass: TypeName = sourceClassName.takeIf { genericTypeNames.isEmpty() }
-            ?: sourceClassName.parameterizedBy(genericTypeNames)
+
+        val typedSourceClass: TypeName = sourceClassName.parameterizedBy(genericTypeNames)
         return typedSourceClass
     }
 
