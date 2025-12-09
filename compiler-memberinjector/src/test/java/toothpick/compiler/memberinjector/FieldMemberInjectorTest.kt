@@ -1737,4 +1737,95 @@ class FieldMemberInjectorTest {
             }
             """
     )
+
+    @Test
+    fun testFieldInjectionOfGenericTypeWithBounds_kt() {
+        val source = ktSource(
+            "TestFieldInjection",
+            """
+            package test
+            import javax.inject.Inject
+            
+            class TestFieldInjection<T : Any> {
+              @Inject lateinit var foo: String
+            }
+            """
+        )
+
+        val expected = expectedKtSource(
+            "test/TestFieldInjection__MemberInjector",
+            """
+            package test
+            
+            import kotlin.Any
+            import kotlin.String
+            import kotlin.Suppress
+            import toothpick.MemberInjector
+            import toothpick.Scope
+            
+            @Suppress(
+              "ClassName",
+              "RedundantVisibilityModifier",
+              "UNCHECKED_CAST",
+            )
+            public class TestFieldInjection__MemberInjector : MemberInjector<TestFieldInjection<Any>> {
+              public override fun inject(target: TestFieldInjection<Any>, scope: Scope) {
+                target.foo = scope.getInstance(String::class.java) as String
+              }
+            }
+            """
+        )
+        compilationAssert()
+            .that(source)
+            .processedWith(MemberInjectorProcessorProvider())
+            .compilesWithoutError()
+            .generatesSources(expected)
+    }
+
+    @Test
+    fun testFieldInjectionOfGenericTypeWithGenericBounds_kt() {
+        val source = ktSource(
+            "TestFieldInjection",
+            """
+            package test
+            import javax.inject.Inject
+            
+            class TestFieldInjection<T : Any, U : GenericClass<T>> {
+                @Inject lateinit var foo: String
+            }
+            
+            class GenericClass<S : Any>
+            """
+        )
+
+        val expected = expectedKtSource(
+            "test/TestFieldInjection__MemberInjector",
+            """
+            package test
+            
+            import kotlin.Any
+            import kotlin.String
+            import kotlin.Suppress
+            import toothpick.MemberInjector
+            import toothpick.Scope
+            
+            @Suppress(
+              "ClassName",
+              "RedundantVisibilityModifier",
+              "UNCHECKED_CAST",
+            )
+            public class TestFieldInjection__MemberInjector :
+                MemberInjector<TestFieldInjection<Any, GenericClass<Any>>> {
+              public override fun inject(target: TestFieldInjection<Any, GenericClass<Any>>, scope: Scope) {
+                target.foo = scope.getInstance(String::class.java) as String
+              }
+            }
+            """
+        )
+        compilationAssert()
+            .that(source)
+            .processedWith(MemberInjectorProcessorProvider())
+            .compilesWithoutError()
+            .generatesSources(expected)
+    }
 }
