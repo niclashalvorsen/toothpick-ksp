@@ -19,6 +19,7 @@ package toothpick.compiler.factory.generators
 
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
@@ -27,6 +28,7 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.ksp.addOriginatingKSFile
@@ -57,6 +59,11 @@ internal class FactoryGenerator(
 
     val sourceClassName: ClassName = sourceClass.toClassName()
     val generatedClassName: ClassName = sourceClassName.factoryClassName
+    val genericTypeNames: List<TypeName> = sourceClass.typeParameters.map {
+        ANY // Just map everything to "ANY" todo document that it will work
+    }
+    val parameterizedSourceClassname = sourceClassName.takeIf { genericTypeNames.isEmpty() }
+        ?: sourceClassName.parameterizedBy(genericTypeNames)
 
     override fun brewCode(): FileSpec {
         return FileSpec.get(
@@ -65,7 +72,7 @@ internal class FactoryGenerator(
                 .addOriginatingKSFile(sourceClass.containingFile!!)
                 .addModifiers(getNestingAwareModifier() ?: KModifier.PUBLIC)
                 .addSuperinterface(
-                    Factory::class.asClassName().parameterizedBy(sourceClassName)
+                    Factory::class.asClassName().parameterizedBy(parameterizedSourceClassname)
                 )
                 .addAnnotation(
                     AnnotationSpec.builder(Suppress::class)
@@ -146,7 +153,7 @@ internal class FactoryGenerator(
         FunSpec.builder("createInstance")
             .addModifiers(KModifier.PUBLIC, KModifier.OVERRIDE)
             .addParameter("scope", Scope::class)
-            .returns(sourceClassName)
+            .returns(parameterizedSourceClassname)
             .apply {
                 AnnotationSpec.builder(Suppress::class)
                     .apply {
@@ -187,12 +194,12 @@ internal class FactoryGenerator(
                         if (!constructorInjectionTarget.isObject) {
                             addStatement(
                                 "return %T(%L)",
-                                sourceClassName,
+                                parameterizedSourceClassname,
                                 List(constructorInjectionTarget.parameters.size) { i -> "param${i + 1}" }
                                     .joinToString(", ")
                             )
                         } else {
-                            addStatement("return %T", sourceClassName)
+                            addStatement("return %T", parameterizedSourceClassname)
                         }
 
                         if (constructorInjectionTarget.superClassThatNeedsMemberInjection != null) {

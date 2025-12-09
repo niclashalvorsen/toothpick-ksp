@@ -6,12 +6,15 @@ import toothpick.compiler.memberinjector.MemberInjectorProcessorProvider
 
 class GenericClassTest {
     @Test
-    fun class_inheriting_generic_class() {
+    fun typed_class_inheriting_generic_class() {
         val source = ktSource(
             "TestGeneric1",
             """
             package test
             import toothpick.InjectConstructor
+            
+            class GenericBaseClass<T> 
+            
             @InjectConstructor
             class TestGeneric1 : GenericBaseClass<String>
             """
@@ -21,12 +24,55 @@ class GenericClassTest {
             .that(source)
             .processedWith(FactoryProcessorProvider(), MemberInjectorProcessorProvider())
             .compilesWithoutError()
-            .generatesSources(
-                genericSource
-            )
+            .generatesSources(genericResult1)
     }
 
-    private val genericSource =
+    @Test
+    fun generic_class_inheriting_generic_class() {
+        val source = ktSource(
+            "TestGeneric2",
+            """
+            package test
+            import toothpick.InjectConstructor
+            
+            class GenericBaseClass<T> 
+            
+            @InjectConstructor
+            class TestGeneric2<T> : GenericBaseClass<T>
+            """
+        )
+
+        compilationAssert()
+            .that(source)
+            .processedWith(FactoryProcessorProvider(), MemberInjectorProcessorProvider())
+            .compilesWithoutError()
+            .generatesSources(genericResult2)
+    }
+
+    @Test
+    fun generic_class_two_type_params_inheriting_one() {
+        val source = ktSource(
+            "TestGeneric3",
+            """
+            package test
+            import toothpick.InjectConstructor
+            
+            class GenericBaseClass<T> 
+            
+            @InjectConstructor
+            class TestGeneric3<T, U> : GenericBaseClass<T>
+            """
+        )
+
+        compilationAssert()
+            .that(source)
+            .processedWith(FactoryProcessorProvider(), MemberInjectorProcessorProvider())
+            .compilesWithoutError()
+            .generatesSources(genericResult3)
+    }
+
+
+    private val genericResult1 =
         expectedKtSource(
             "test/TestGeneric1__Factory",
             """
@@ -41,8 +87,78 @@ class GenericClassTest {
               "ClassName",
               "RedundantVisibilityModifier",
             )
-            public class TestGeneric1__Factory : Factory<TestGeneric1<*>> {
-              public override fun createInstance(scope: Scope): TestGeneric1<*> = TestGeneric1<Any?>()
+            public class TestGeneric1__Factory : Factory<TestGeneric1> {
+              public override fun createInstance(scope: Scope): TestGeneric1 = TestGeneric1()
+            
+              public override fun getTargetScope(scope: Scope): Scope = scope
+            
+              public override fun hasScopeAnnotation(): Boolean = false
+            
+              public override fun hasSingletonAnnotation(): Boolean = false
+            
+              public override fun hasReleasableAnnotation(): Boolean = false
+            
+              public override fun hasProvidesSingletonAnnotation(): Boolean = false
+            
+              public override fun hasProvidesReleasableAnnotation(): Boolean = false
+            }
+            """
+        )
+
+    private val genericResult2 =
+        expectedKtSource(
+            "test/TestGeneric2__Factory",
+            """
+            package test
+            
+            import kotlin.Any
+            import kotlin.Boolean
+            import kotlin.Suppress
+            import toothpick.Factory
+            import toothpick.Scope
+
+            @Suppress(
+              "ClassName",
+              "RedundantVisibilityModifier",
+            )
+            public class TestGeneric2__Factory : Factory<TestGeneric2<Any>> {
+              public override fun createInstance(scope: Scope): TestGeneric2<Any> = TestGeneric2<Any>()
+            
+              public override fun getTargetScope(scope: Scope): Scope = scope
+            
+              public override fun hasScopeAnnotation(): Boolean = false
+            
+              public override fun hasSingletonAnnotation(): Boolean = false
+            
+              public override fun hasReleasableAnnotation(): Boolean = false
+            
+              public override fun hasProvidesSingletonAnnotation(): Boolean = false
+            
+              public override fun hasProvidesReleasableAnnotation(): Boolean = false
+            }
+            """
+        )
+
+
+    private val genericResult3 =
+        expectedKtSource(
+            "test/TestGeneric3__Factory",
+            """
+            package test
+            
+            import kotlin.Any
+            import kotlin.Boolean
+            import kotlin.Suppress
+            import toothpick.Factory
+            import toothpick.Scope
+
+            @Suppress(
+              "ClassName",
+              "RedundantVisibilityModifier",
+            )
+            public class TestGeneric3__Factory : Factory<TestGeneric3<Any, Any>> {
+              public override fun createInstance(scope: Scope): TestGeneric3<Any, Any> =   
+                  TestGeneric3<Any, Any>()
             
               public override fun getTargetScope(scope: Scope): Scope = scope
             
