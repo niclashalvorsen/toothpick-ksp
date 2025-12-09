@@ -139,6 +139,30 @@ class GenericClassTest {
             .generatesSources(genericResult6)
     }
 
+    @Test
+    fun member_injection_generic_class() {
+        val source = ktSource(
+            "TestGenericMemberInjection",
+            """
+            package test
+            import javax.inject.Inject
+            import toothpick.InjectConstructor
+            
+            
+            class TestGenericMemberInjection<T> where T: Any {
+                 @Inject
+                 lateinit var myVar: String
+            }
+            """
+        )
+
+        compilationAssert()
+            .that(source)
+            .processedWith(FactoryProcessorProvider(), MemberInjectorProcessorProvider())
+            .compilesWithoutError()
+            .generatesSources(testGenericMemberInjectionResult)
+    }
+
     private val genericResult1 =
         expectedKtSource(
             "test/TestGeneric1__Factory",
@@ -348,4 +372,48 @@ class GenericClassTest {
             """
         )
 
+    private val testGenericMemberInjectionResult =
+        expectedKtSource(
+            "test/TestGenericMemberInjection__Factory",
+            """
+            package test
+
+            import kotlin.Any
+            import kotlin.Boolean
+            import kotlin.Suppress
+            import toothpick.Factory
+            import toothpick.MemberInjector
+            import toothpick.Scope
+
+            @Suppress(
+              "ClassName",
+              "RedundantVisibilityModifier",
+            )
+            public class TestGenericMemberInjection__Factory : Factory<TestGenericMemberInjection<Any>> {
+              private val memberInjector: MemberInjector<TestGenericMemberInjection<Any>> =
+                  TestGenericMemberInjection__MemberInjector()
+
+              @Suppress("NAME_SHADOWING")
+              public override fun createInstance(scope: Scope): TestGenericMemberInjection<Any> {
+                val scope = getTargetScope(scope)
+                return TestGenericMemberInjection<Any>()
+                .apply {
+                  memberInjector.inject(this, scope)
+                }
+              }
+            
+              public override fun getTargetScope(scope: Scope): Scope = scope
+            
+              public override fun hasScopeAnnotation(): Boolean = false
+            
+              public override fun hasSingletonAnnotation(): Boolean = false
+            
+              public override fun hasReleasableAnnotation(): Boolean = false
+            
+              public override fun hasProvidesSingletonAnnotation(): Boolean = false
+            
+              public override fun hasProvidesReleasableAnnotation(): Boolean = false
+            }
+            """
+        )
 }

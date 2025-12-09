@@ -61,11 +61,12 @@ internal class FactoryGenerator(
     val sourceClassName: ClassName = sourceClass.toClassName()
     val generatedClassName: ClassName = sourceClassName.factoryClassName
 
-    val parameterizedSourceClassname: TypeName= resolveSourceClassTypeNames()
+    val parameterizedSourceClassname: TypeName= resolveClassWithGenerics(sourceClass)
 
-    private fun resolveSourceClassTypeNames(): TypeName {
-        if (sourceClass.typeParameters.isEmpty()) return sourceClassName
-        val genericTypeNames: List<TypeName> = sourceClass.typeParameters.map { type ->
+    private fun resolveClassWithGenerics(clazz: KSClassDeclaration): TypeName {
+        val clazzName = clazz.toClassName()
+        if (clazz.typeParameters.isEmpty()) return clazzName
+        val genericTypeNames: List<TypeName> = clazz.typeParameters.map { type ->
             val bounds = type.bounds.toList()
             if (bounds.isEmpty()) {
                 STAR
@@ -74,7 +75,7 @@ internal class FactoryGenerator(
             }
         }
 
-        val typedSourceClass: TypeName = sourceClassName.parameterizedBy(genericTypeNames)
+        val typedSourceClass: TypeName = clazzName.parameterizedBy(genericTypeNames)
         return typedSourceClass
     }
 
@@ -141,16 +142,18 @@ internal class FactoryGenerator(
     }
 
     private fun TypeSpec.Builder.emitSuperMemberInjectorFieldIfNeeded() = apply {
-        val superTypeThatNeedsInjection: ClassName =
-            constructorInjectionTarget
+        val superTypeClass: KSClassDeclaration? = constructorInjectionTarget
                 .superClassThatNeedsMemberInjection
+        val superTypeThatNeedsInjection: ClassName = superTypeClass
                 ?.toClassName()
                 ?: return this
+
+        val superTypeClassNameWithGenerics = resolveClassWithGenerics(superTypeClass)
 
         PropertySpec
             .builder(
                 "memberInjector",
-                MemberInjector::class.asClassName().parameterizedBy(superTypeThatNeedsInjection),
+                MemberInjector::class.asClassName().parameterizedBy(superTypeClassNameWithGenerics),
                 KModifier.PRIVATE
             )
             .initializer("%T()", superTypeThatNeedsInjection.memberInjectorClassName)
