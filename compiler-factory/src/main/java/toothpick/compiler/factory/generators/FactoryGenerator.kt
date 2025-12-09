@@ -19,6 +19,7 @@ package toothpick.compiler.factory.generators
 
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
@@ -71,12 +72,36 @@ internal class FactoryGenerator(
             if (bounds.isEmpty()) {
                 STAR
             } else {
-                bounds.first().toTypeName()
+                getTypeNameFrom(type, clazz.typeParameters)
             }
         }
 
         val typedSourceClass: TypeName = clazzName.parameterizedBy(genericTypeNames)
         return typedSourceClass
+    }
+
+    private fun getTypeNameFrom(typeParam: KSTypeParameter, typeParameters: List<KSTypeParameter>): TypeName {
+        val bound = typeParam.bounds.firstOrNull()
+        if (bound?.element?.typeArguments?.isNotEmpty() == true) {
+            // The bound is itself a generic, bound elsewhere in the statement
+            val boundArgs = bound.element!!.typeArguments.toList()
+            val boundList: List<TypeName> = boundArgs.map { boundArg ->
+                boundArg.type?.let { type ->
+                    // note: Matching on "toString" was a quick hack. Couldn't find the correct property to look up
+                    val matchedTypeParam: KSTypeParameter? = typeParameters.firstOrNull { it.toString() == type.toString() }
+                    // limitation as of now: Only supporting single boundary
+                    matchedTypeParam?.bounds?.firstOrNull()?.toTypeName() ?: STAR
+                } ?: STAR
+            }
+            try {
+                return bound.resolve().toClassName().parameterizedBy(boundList)
+            } catch (ex: Exception) {
+                // todo should log warning here
+                return STAR
+            }
+        } else {
+            return bound?.toTypeName() ?: STAR
+        }
     }
 
     override fun brewCode(): FileSpec {

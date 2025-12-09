@@ -115,11 +115,12 @@ internal class MemberInjectorGenerator(
             // The bound is itself a generic, bound elsewhere in the statement
             val boundArgs = bound.element!!.typeArguments.toList()
             val boundList: List<TypeName> = boundArgs.map { boundArg ->
-                val type: KSTypeReference = boundArg.type!!
-                // note: Matching on "toString" was a quick hack. Couldn't find the correct property to look up
-                val matchedTypeParam: KSTypeParameter? = typeParameters.firstOrNull { it.toString() == type.toString() }
-                // limitation as of now: Only supporting single boundary
-                matchedTypeParam?.bounds?.firstOrNull()?.toTypeName() ?: STAR
+                boundArg.type?.let { type ->
+                    // note: Matching on "toString" was a quick hack. Couldn't find the correct property to look up
+                    val matchedTypeParam: KSTypeParameter? = typeParameters.firstOrNull { it.toString() == type.toString() }
+                    // limitation as of now: Only supporting single boundary
+                    matchedTypeParam?.bounds?.firstOrNull()?.toTypeName() ?: STAR
+                } ?: STAR
             }
             try {
                 return bound.resolve().toClassName().parameterizedBy(boundList)
@@ -127,9 +128,9 @@ internal class MemberInjectorGenerator(
                 // todo should log warning here
                 return STAR
             }
+        } else {
+            return bound?.toTypeName() ?: STAR
         }
-
-        return bound?.toTypeName() ?: STAR
     }
 /*
     class MyResolver(override val parametersMap: Map<String, TypeVariableName>) : TypeParameterResolver {
