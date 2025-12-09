@@ -71,6 +71,28 @@ class GenericClassTest {
             .generatesSources(genericResult3)
     }
 
+    @Test
+    fun generic_class_with_constraints() {
+        val source = ktSource(
+            "TestGeneric4",
+            """
+            package test
+            import toothpick.InjectConstructor
+            
+            class GenericClass<T> 
+            
+            @InjectConstructor
+            class TestGeneric4<T> where T : GenericClass<*>
+            """
+        )
+
+        compilationAssert()
+            .that(source)
+            .processedWith(FactoryProcessorProvider(), MemberInjectorProcessorProvider())
+            .compilesWithoutError()
+            .generatesSources(genericResult4)
+    }
+
 
     private val genericResult1 =
         expectedKtSource(
@@ -159,6 +181,41 @@ class GenericClassTest {
             public class TestGeneric3__Factory : Factory<TestGeneric3<Any, Any>> {
               public override fun createInstance(scope: Scope): TestGeneric3<Any, Any> =   
                   TestGeneric3<Any, Any>()
+            
+              public override fun getTargetScope(scope: Scope): Scope = scope
+            
+              public override fun hasScopeAnnotation(): Boolean = false
+            
+              public override fun hasSingletonAnnotation(): Boolean = false
+            
+              public override fun hasReleasableAnnotation(): Boolean = false
+            
+              public override fun hasProvidesSingletonAnnotation(): Boolean = false
+            
+              public override fun hasProvidesReleasableAnnotation(): Boolean = false
+            }
+            """
+        )
+
+    private val genericResult4 =
+        expectedKtSource(
+            "test/TestGeneric4__Factory",
+            """
+            package test
+            
+            import kotlin.Any
+            import kotlin.Boolean
+            import kotlin.Suppress
+            import toothpick.Factory
+            import toothpick.Scope
+
+            @Suppress(
+              "ClassName",
+              "RedundantVisibilityModifier",
+            )
+            public class TestGeneric4__Factory : Factory<TestGeneric4<GenericClass<*>>> {
+              public override fun createInstance(scope: Scope): TestGeneric4<GenericClass<*>> =   
+                  TestGeneric4<GenericClass<*>>()
             
               public override fun getTargetScope(scope: Scope): Scope = scope
             

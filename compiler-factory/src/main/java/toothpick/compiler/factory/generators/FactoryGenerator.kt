@@ -59,11 +59,17 @@ internal class FactoryGenerator(
 
     val sourceClassName: ClassName = sourceClass.toClassName()
     val generatedClassName: ClassName = sourceClassName.factoryClassName
-    val genericTypeNames: List<TypeName> = sourceClass.typeParameters.map {
-        ANY // Just map everything to "ANY" todo document that it will work
+
+    val parameterizedSourceClassname = resolveTypeNames(sourceClass)
+
+    private fun resolveTypeNames(clazz: KSClassDeclaration): ClassName {
+        val genericTypeNames: List<TypeName> = sourceClass.typeParameters.map {
+            ANY // Just map everything to "ANY" todo document that it will work
+        }
+        val typedSourceClass: TypeName = sourceClassName.takeIf { genericTypeNames.isEmpty() }
+            ?: sourceClassName.parameterizedBy(genericTypeNames)
+        return typedSourceClass
     }
-    val parameterizedSourceClassname = sourceClassName.takeIf { genericTypeNames.isEmpty() }
-        ?: sourceClassName.parameterizedBy(genericTypeNames)
 
     override fun brewCode(): FileSpec {
         return FileSpec.get(
