@@ -1879,4 +1879,89 @@ class FieldMemberInjectorTest {
             .compilesWithoutError()
             .generatesSources(expected)
     }
+
+
+    @Test
+    fun testFieldInjectionOfGenericTypesInherited_kt() {
+        val source = ktSource(
+            "TestFieldInjection",
+            """
+            package test
+
+            import javax.inject.Inject
+            
+            abstract class BaseGenericClass<T>
+            
+            abstract class MidLevelGeneric<T> : BaseGenericClass<T>() {
+                @Inject
+                lateinit var foo: String
+            }
+            
+            class ThirdLevelGeneric : MidLevelGeneric<String>() {
+                @Inject
+                lateinit var bar: String
+            }    
+
+            """
+        )
+
+        val expectedMid = expectedKtSource(
+            "test/MidLevelGeneric__MemberInjector",
+            """
+            package test
+            
+            import kotlin.String
+            import kotlin.Suppress
+            import toothpick.MemberInjector
+            import toothpick.Scope
+            
+            @Suppress(
+              "ClassName",
+              "RedundantVisibilityModifier",
+              "UNCHECKED_CAST",
+            )
+            public class MidLevelGeneric__MemberInjector : MemberInjector<MidLevelGeneric<*>> {
+              public override fun inject(target: MidLevelGeneric<*>, scope: Scope) {
+                target.foo = scope.getInstance(String::class.java) as String
+              }
+            }
+
+
+            """
+        )
+
+        val expectedThird = expectedKtSource(
+            "test/ThirdLevelGeneric__MemberInjector",
+            """
+            package test
+            
+            import kotlin.String
+            import kotlin.Suppress
+            import toothpick.MemberInjector
+            import toothpick.Scope
+            
+            @Suppress(
+              "ClassName",
+              "RedundantVisibilityModifier",
+              "UNCHECKED_CAST",
+            )
+            public class ThirdLevelGeneric__MemberInjector : MemberInjector<ThirdLevelGeneric> {
+              private val superMemberInjector: MemberInjector<MidLevelGeneric<*>> =
+                  MidLevelGeneric__MemberInjector()
+            
+              public override fun inject(target: ThirdLevelGeneric, scope: Scope) {
+                superMemberInjector.inject(target, scope)
+                target.bar = scope.getInstance(String::class.java) as String
+              }
+            }
+
+            """
+        )
+        compilationAssert()
+            .that(source)
+            .processedWith(MemberInjectorProcessorProvider())
+            .compilesWithoutError()
+            .generatesSources(expectedMid)
+            .generatesSources(expectedThird)
+    }
 }
