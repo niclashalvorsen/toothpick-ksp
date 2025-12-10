@@ -37,29 +37,12 @@ object GenericsHelper {
      * E.g 1: "MyClass<T> where T: Exception" will resolve to Exception
      * E.g 2: "MyClass<T> will resolve to STAR
      * E.g 3: "MyClass<Exception> will resolve to Exception
+     * todo update comment above. no longer precise. Remove typeParams arg
      * */
     private fun resolveTypeToFirstTypeBoundary(typeParam: KSTypeParameter, typeParameters: List<KSTypeParameter>): TypeName {
         if (typeParam.bounds.count() > 1) throw GenericSupportException(TOO_MANY_CONSTRAINTS)
         val firstConstraint = typeParam.bounds.firstOrNull()
-        if (firstConstraint?.element?.typeArguments?.isNotEmpty() == true) {
-            // The bound is itself a generic, bound elsewhere in the statement
-            val boundArgs = firstConstraint.element!!.typeArguments.toList()
-            val boundList: List<TypeName> = boundArgs.map { boundArg ->
-                boundArg.type?.let { type ->
-                    // note: Matching on "toString" was a quick hack. Couldn't find the correct property to look up
-                    val matchedTypeParam: KSTypeParameter? = typeParameters.firstOrNull { it.toString() == type.toString() }
-                    // limitation as of now: Only supporting single boundary
-                    matchedTypeParam?.bounds?.firstOrNull()?.toTypeName() ?: STAR
-                } ?: STAR
-            }
-            try {
-                return firstConstraint.resolve().toClassName().parameterizedBy(boundList)
-            } catch (ex: Exception) {
-                throw GenericSupportException("Unexpected exception while resolving type", ex)
-            }
-        } else {
-            return firstConstraint?.toTypeName() ?: STAR
-        }
+        return firstConstraint?.toTypeName() ?: STAR
     }
 }
 
