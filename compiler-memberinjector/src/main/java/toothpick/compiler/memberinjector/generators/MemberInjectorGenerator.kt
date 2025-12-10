@@ -68,6 +68,7 @@ internal class MemberInjectorGenerator(
     }
 
     private val parameterizedSourceClass: TypeName = sourceClass.maybeParameterizedClassName()
+    private val starParameterizedSourceClass: TypeName = sourceClass.maybeStarParameterizedClassName()
     val sourceClassName: ClassName = sourceClass.toClassName()
     val generatedClassName: ClassName = sourceClassName.memberInjectorClassName
 
@@ -78,7 +79,7 @@ internal class MemberInjectorGenerator(
                 .addOriginatingKSFile(sourceClass.containingFile!!)
                 .addModifiers(sourceClass.getVisibility().toKModifier() ?: KModifier.PUBLIC)
                 .addSuperinterface(
-                    MemberInjector::class.asClassName().parameterizedBy(parameterizedSourceClass)
+                    MemberInjector::class.asClassName().parameterizedBy(starParameterizedSourceClass)
                 )
                 .addAnnotation(
                     AnnotationSpec.builder(Suppress::class)
@@ -97,17 +98,27 @@ internal class MemberInjectorGenerator(
         return if (this.typeParameters.isEmpty()) {
             toClassName()
         } else {
-            val typeArguments :List<TypeName> = this.typeParameters.map { typeParam ->
+            val typeArguments: List<TypeName> = this.typeParameters.map { typeParam ->
                 try {
                     getTypeNameFrom(typeParam, typeParameters)
                 } catch (ex: Exception) {
-                    println("IIIK $ex")
+                    // todo log warning
                     STAR
                 }
             }
             toClassName().parameterizedBy(typeArguments)
         }
     }
+
+    private fun KSClassDeclaration.maybeStarParameterizedClassName(): TypeName {
+        return if (this.typeParameters.isEmpty()) {
+            toClassName()
+        } else {
+            val starList = List(typeParameters.size) { STAR }
+            toClassName().parameterizedBy(starList)
+        }
+    }
+
 
     private fun getTypeNameFrom(typeParam: KSTypeParameter, typeParameters: List<KSTypeParameter>): TypeName {
         val bound = typeParam.bounds.firstOrNull()
@@ -171,7 +182,7 @@ internal class MemberInjectorGenerator(
         addFunction(
             FunSpec.builder("inject")
                 .addModifiers(KModifier.PUBLIC, KModifier.OVERRIDE)
-                .addParameter("target", parameterizedSourceClass)
+                .addParameter("target", starParameterizedSourceClass)
                 .addParameter("scope", Scope::class)
                 .apply {
                     if (superClassThatNeedsInjection != null) {
