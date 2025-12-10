@@ -1,10 +1,15 @@
-package toothpick.compiler
+package toothpick.compiler.factory
 
 import org.junit.Test
-import toothpick.compiler.factory.FactoryProcessorProvider
-import toothpick.compiler.memberinjector.MemberInjectorProcessorProvider
+import toothpick.compiler.compilationAssert
+import toothpick.compiler.compilesWithoutError
+import toothpick.compiler.expectedKtSource
+import toothpick.compiler.generatesSources
+import toothpick.compiler.ktSource
+import toothpick.compiler.processedWith
+import toothpick.compiler.that
 
-class GenericClassTest {
+class FactoryGenericSupportTest {
     @Test
     fun typed_class_inheriting_generic_class() {
         val source = ktSource(
@@ -20,151 +25,7 @@ class GenericClassTest {
             """
         )
 
-        compilationAssert()
-            .that(source)
-            .processedWith(FactoryProcessorProvider(), MemberInjectorProcessorProvider())
-            .compilesWithoutError()
-            .generatesSources(genericResult1)
-    }
-
-    @Test
-    fun generic_class_inheriting_generic_class() {
-        val source = ktSource(
-            "TestGeneric2",
-            """
-            package test
-            import toothpick.InjectConstructor
-            
-            class GenericBaseClass<T> 
-            
-            @InjectConstructor
-            class TestGeneric2<T> : GenericBaseClass<T>
-            """
-        )
-
-        compilationAssert()
-            .that(source)
-            .processedWith(FactoryProcessorProvider(), MemberInjectorProcessorProvider())
-            .compilesWithoutError()
-            .generatesSources(genericResult2)
-    }
-
-    @Test
-    fun generic_class_two_type_params_inheriting_one() {
-        val source = ktSource(
-            "TestGeneric3",
-            """
-            package test
-            import toothpick.InjectConstructor
-            
-            class GenericBaseClass<T> 
-            
-            @InjectConstructor
-            class TestGeneric3<T, U> : GenericBaseClass<T>
-            """
-        )
-
-        compilationAssert()
-            .that(source)
-            .processedWith(FactoryProcessorProvider(), MemberInjectorProcessorProvider())
-            .compilesWithoutError()
-            .generatesSources(genericResult3)
-    }
-
-    @Test
-    fun generic_class_with_bounds_to_generic_class() {
-        val source = ktSource(
-            "TestGeneric4",
-            """
-            package test
-            import toothpick.InjectConstructor
-            
-            class GenericClass<T> 
-            
-            @InjectConstructor
-            class TestGeneric4<T> where T : GenericClass<*>
-            """
-        )
-
-        compilationAssert()
-            .that(source)
-            .processedWith(FactoryProcessorProvider(), MemberInjectorProcessorProvider())
-            .compilesWithoutError()
-            .generatesSources(genericResult4)
-    }
-
-
-
-    @Test
-    fun generic_class_with_bounds_to_trivial_class() {
-        val source = ktSource(
-            "TestGeneric5",
-            """
-            package test
-            import java.lang.Exception
-            import toothpick.InjectConstructor
-            
-            
-            @InjectConstructor
-            class TestGeneric5<T> where T : Exception
-            """
-        )
-
-        compilationAssert()
-            .that(source)
-            .processedWith(FactoryProcessorProvider(), MemberInjectorProcessorProvider())
-            .compilesWithoutError()
-            .generatesSources(genericResult5)
-    }
-
-    @Test
-    fun generic_class_two_type_params_two_bounds() {
-        val source = ktSource(
-            "TestGeneric6",
-            """
-            package test
-            import java.lang.Exception
-            import toothpick.InjectConstructor
-            
-            
-            @InjectConstructor
-            class TestGeneric6<T, Q> where T : Exception, Q: Any
-            """
-        )
-
-        compilationAssert()
-            .that(source)
-            .processedWith(FactoryProcessorProvider(), MemberInjectorProcessorProvider())
-            .compilesWithoutError()
-            .generatesSources(genericResult6)
-    }
-
-    @Test
-    fun member_injection_generic_class() {
-        val source = ktSource(
-            "TestGenericMemberInjection",
-            """
-            package test
-            import javax.inject.Inject
-            import toothpick.InjectConstructor
-            
-            
-            class TestGenericMemberInjection<T> where T: Any {
-                 @Inject
-                 lateinit var myVar: String
-            }
-            """
-        )
-
-        compilationAssert()
-            .that(source)
-            .processedWith(FactoryProcessorProvider(), MemberInjectorProcessorProvider())
-            .compilesWithoutError()
-            .generatesSources(testGenericMemberInjectionResult)
-    }
-
-    private val genericResult1 =
-        expectedKtSource(
+        val expectedResult = expectedKtSource(
             "test/TestGeneric1__Factory",
             """
             package test
@@ -196,8 +57,29 @@ class GenericClassTest {
             """
         )
 
-    private val genericResult2 =
-        expectedKtSource(
+        compilationAssert()
+            .that(source)
+            .processedWith(FactoryProcessorProvider())
+            .compilesWithoutError()
+            .generatesSources(expectedResult)
+    }
+
+    @Test
+    fun generic_class_inheriting_generic_class() {
+        val source = ktSource(
+            "TestGeneric2",
+            """
+            package test
+            import toothpick.InjectConstructor
+            
+            class GenericBaseClass<T> 
+            
+            @InjectConstructor
+            class TestGeneric2<T> : GenericBaseClass<T>
+            """
+        )
+
+        val expectedResult = expectedKtSource(
             "test/TestGeneric2__Factory",
             """
             package test
@@ -212,7 +94,7 @@ class GenericClassTest {
               "ClassName",
               "RedundantVisibilityModifier",
             )
-            public class TestGeneric2__Factory : Factory<TestGeneric2<Any?>> {
+            public class TestGeneric2__Factory : Factory<TestGeneric2<*>> {
               public override fun createInstance(scope: Scope): TestGeneric2<Any?> = TestGeneric2<Any?>()
             
               public override fun getTargetScope(scope: Scope): Scope = scope
@@ -230,9 +112,87 @@ class GenericClassTest {
             """
         )
 
+        compilationAssert()
+            .that(source)
+            .processedWith(FactoryProcessorProvider())
+            .compilesWithoutError()
+            .generatesSources(expectedResult)
+    }
 
-    private val genericResult3 =
-        expectedKtSource(
+    @Test
+    fun generic_class_two_type_params_two_bounds() {
+        val source = ktSource(
+            "TestGeneric6",
+            """
+            package test
+            import java.lang.Exception
+            import toothpick.InjectConstructor
+            
+            
+            @InjectConstructor
+            class TestGeneric6<T, Q> where T : Exception, Q: Any
+            """
+        )
+
+        val expectedResult =
+            expectedKtSource(
+                "test/TestGeneric6__Factory",
+                """
+            package test
+            
+            import java.lang.Exception
+            import kotlin.Any
+            import kotlin.Boolean
+            import kotlin.Suppress
+            import toothpick.Factory
+            import toothpick.Scope
+
+            @Suppress(
+              "ClassName",
+              "RedundantVisibilityModifier",
+            )
+            public class TestGeneric6__Factory : Factory<TestGeneric6<*, *>> {
+              public override fun createInstance(scope: Scope): TestGeneric6<Exception, Any> =
+                  TestGeneric6<Exception, Any>()
+            
+              public override fun getTargetScope(scope: Scope): Scope = scope
+            
+              public override fun hasScopeAnnotation(): Boolean = false
+            
+              public override fun hasSingletonAnnotation(): Boolean = false
+            
+              public override fun hasReleasableAnnotation(): Boolean = false
+            
+              public override fun hasProvidesSingletonAnnotation(): Boolean = false
+            
+              public override fun hasProvidesReleasableAnnotation(): Boolean = false
+            }
+            """
+            )
+
+        compilationAssert()
+            .that(source)
+            .processedWith(FactoryProcessorProvider())
+            .compilesWithoutError()
+            .generatesSources(expectedResult)
+    }
+
+    @Test
+    fun generic_class_two_type_params_inheriting_one() {
+        val source = ktSource(
+            "TestGeneric3",
+            """
+            package test
+            import toothpick.InjectConstructor
+            
+            class GenericBaseClass<T> 
+            
+            @InjectConstructor
+            class TestGeneric3<T, U> : GenericBaseClass<T>
+            """
+        )
+
+        val expectedResult = expectedKtSource(
             "test/TestGeneric3__Factory",
             """
             package test
@@ -247,7 +207,7 @@ class GenericClassTest {
               "ClassName",
               "RedundantVisibilityModifier",
             )
-            public class TestGeneric3__Factory : Factory<TestGeneric3<Any?, Any?>> {
+            public class TestGeneric3__Factory : Factory<TestGeneric3<*, *>> {
               public override fun createInstance(scope: Scope): TestGeneric3<Any?, Any?> =
                   TestGeneric3<Any?, Any?>()
             
@@ -266,8 +226,29 @@ class GenericClassTest {
             """
         )
 
-    private val genericResult4 =
-        expectedKtSource(
+        compilationAssert()
+            .that(source)
+            .processedWith(FactoryProcessorProvider())
+            .compilesWithoutError()
+            .generatesSources(expectedResult)
+    }
+
+    @Test
+    fun generic_class_with_bounds_to_generic_class() {
+        val source = ktSource(
+            "TestGeneric4",
+            """
+            package test
+            import toothpick.InjectConstructor
+            
+            class GenericClass<T> 
+            
+            @InjectConstructor
+            class TestGeneric4<T> where T : GenericClass<*>
+            """
+        )
+
+        val expectedResult = expectedKtSource(
             "test/TestGeneric4__Factory",
             """
             package test
@@ -281,7 +262,7 @@ class GenericClassTest {
               "ClassName",
               "RedundantVisibilityModifier",
             )
-            public class TestGeneric4__Factory : Factory<TestGeneric4<GenericClass<*>>> {
+            public class TestGeneric4__Factory : Factory<TestGeneric4<*>> {
               public override fun createInstance(scope: Scope): TestGeneric4<GenericClass<*>> =
                   TestGeneric4<GenericClass<*>>()
             
@@ -300,8 +281,29 @@ class GenericClassTest {
             """
         )
 
-    private val genericResult5 =
-        expectedKtSource(
+        compilationAssert()
+            .that(source)
+            .processedWith(FactoryProcessorProvider())
+            .compilesWithoutError()
+            .generatesSources(expectedResult)
+    }
+
+    @Test
+    fun generic_class_with_bounds_to_trivial_class() {
+        val source = ktSource(
+            "TestGeneric5",
+            """
+            package test
+            import java.lang.Exception
+            import toothpick.InjectConstructor
+            
+            
+            @InjectConstructor
+            class TestGeneric5<T> where T : Exception
+            """
+        )
+
+        val exptectedResult = expectedKtSource(
             "test/TestGeneric5__Factory",
             """
             package test
@@ -316,7 +318,7 @@ class GenericClassTest {
               "ClassName",
               "RedundantVisibilityModifier",
             )
-            public class TestGeneric5__Factory : Factory<TestGeneric5<Exception>> {
+            public class TestGeneric5__Factory : Factory<TestGeneric5<*>> {
               public override fun createInstance(scope: Scope): TestGeneric5<Exception> =
                   TestGeneric5<Exception>()
             
@@ -335,47 +337,34 @@ class GenericClassTest {
             """
         )
 
+        compilationAssert()
+            .that(source)
+            .processedWith(FactoryProcessorProvider())
+            .compilesWithoutError()
+            .generatesSources(exptectedResult)
+    }
 
-    private val genericResult6 =
-        expectedKtSource(
-            "test/TestGeneric6__Factory",
+    @Test
+    fun member_injection_generic_class() {
+        val source = ktSource(
+            "TestGenericMemberInjection",
             """
             package test
+            import javax.inject.Inject
+            import toothpick.InjectConstructor
             
-            import java.lang.Exception
-            import kotlin.Any
-            import kotlin.Boolean
-            import kotlin.Suppress
-            import toothpick.Factory
-            import toothpick.Scope
-
-            @Suppress(
-              "ClassName",
-              "RedundantVisibilityModifier",
-            )
-            public class TestGeneric6__Factory : Factory<TestGeneric6<Exception, Any>> {
-              public override fun createInstance(scope: Scope): TestGeneric6<Exception, Any> =
-                  TestGeneric6<Exception, Any>()
             
-              public override fun getTargetScope(scope: Scope): Scope = scope
-            
-              public override fun hasScopeAnnotation(): Boolean = false
-            
-              public override fun hasSingletonAnnotation(): Boolean = false
-            
-              public override fun hasReleasableAnnotation(): Boolean = false
-            
-              public override fun hasProvidesSingletonAnnotation(): Boolean = false
-            
-              public override fun hasProvidesReleasableAnnotation(): Boolean = false
+            class TestGenericMemberInjection<T> where T: Any {
+                 @Inject
+                 lateinit var myVar: String
             }
             """
         )
 
-    private val testGenericMemberInjectionResult =
-        expectedKtSource(
-            "test/TestGenericMemberInjection__Factory",
-            """
+        val expectedResult =
+            expectedKtSource(
+                "test/TestGenericMemberInjection__Factory",
+                """
             package test
 
             import kotlin.Any
@@ -415,5 +404,12 @@ class GenericClassTest {
               public override fun hasProvidesReleasableAnnotation(): Boolean = false
             }
             """
-        )
+            )
+
+        compilationAssert()
+            .that(source)
+            .processedWith(FactoryProcessorProvider())
+            .compilesWithoutError()
+            .generatesSources(expectedResult)
+    }
 }
