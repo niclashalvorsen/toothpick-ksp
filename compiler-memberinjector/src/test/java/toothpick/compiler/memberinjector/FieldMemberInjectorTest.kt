@@ -1756,8 +1756,7 @@ class FieldMemberInjectorTest {
             "test/TestFieldInjection__MemberInjector",
             """
             package test
-            
-            import kotlin.Any
+
             import kotlin.String
             import kotlin.Suppress
             import toothpick.MemberInjector
@@ -1768,8 +1767,8 @@ class FieldMemberInjectorTest {
               "RedundantVisibilityModifier",
               "UNCHECKED_CAST",
             )
-            public class TestFieldInjection__MemberInjector : MemberInjector<TestFieldInjection<Any>> {
-              public override fun inject(target: TestFieldInjection<Any>, scope: Scope) {
+            public class TestFieldInjection__MemberInjector : MemberInjector<TestFieldInjection<*>> {
+              public override fun inject(target: TestFieldInjection<*>, scope: Scope) {
                 target.foo = scope.getInstance(String::class.java) as String
               }
             }
@@ -1802,8 +1801,7 @@ class FieldMemberInjectorTest {
             "test/TestFieldInjection__MemberInjector",
             """
             package test
-            
-            import kotlin.Any
+
             import kotlin.String
             import kotlin.Suppress
             import toothpick.MemberInjector
@@ -1814,9 +1812,8 @@ class FieldMemberInjectorTest {
               "RedundantVisibilityModifier",
               "UNCHECKED_CAST",
             )
-            public class TestFieldInjection__MemberInjector :
-                MemberInjector<TestFieldInjection<Any, GenericClass<Any>>> {
-              public override fun inject(target: TestFieldInjection<Any, GenericClass<Any>>, scope: Scope) {
+            public class TestFieldInjection__MemberInjector : MemberInjector<TestFieldInjection<*, *>> {
+              public override fun inject(target: TestFieldInjection<*, *>, scope: Scope) {
                 target.foo = scope.getInstance(String::class.java) as String
               }
             }
