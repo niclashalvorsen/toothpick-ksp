@@ -1625,7 +1625,7 @@ class FieldMemberInjectorTest {
             .that(source)
             .processedWith(MemberInjectorProcessorProvider())
             .compilesWithoutError()
-            .generatesSources(testSimpleFieldInjectionParameterizedClass_expected_java)
+            .generatesSources(testSimpleFieldInjectionParameterizedClass_expected)
     }
 
     @Test
@@ -1646,33 +1646,10 @@ class FieldMemberInjectorTest {
             .that(source)
             .processedWith(MemberInjectorProcessorProvider())
             .compilesWithoutError()
-            .generatesSources(testSimpleFieldInjectionParameterizedClass_expected_kt)
+            .generatesSources(testSimpleFieldInjectionParameterizedClass_expected)
     }
 
-    private val testSimpleFieldInjectionParameterizedClass_expected_kt = expectedKtSource(
-        "test/TestFieldInjection__MemberInjector",
-        """
-            package test
-            
-            import kotlin.Any
-            import kotlin.Suppress
-            import toothpick.MemberInjector
-            import toothpick.Scope
-            
-            @Suppress(
-              "ClassName",
-              "RedundantVisibilityModifier",
-              "UNCHECKED_CAST",
-            )
-            public class TestFieldInjection__MemberInjector : MemberInjector<TestFieldInjection<Any?>> {
-              public override fun inject(target: TestFieldInjection<Any?>, scope: Scope) {
-                target.foo = scope.getInstance(Foo::class.java) as Foo
-              }
-            }
-            """
-    )
-
-    private val testSimpleFieldInjectionParameterizedClass_expected_java = expectedKtSource(
+    private val testSimpleFieldInjectionParameterizedClass_expected = expectedKtSource(
         "test/TestFieldInjection__MemberInjector",
         """
             package test
@@ -1714,7 +1691,7 @@ class FieldMemberInjectorTest {
             .that(source)
             .processedWith(MemberInjectorProcessorProvider())
             .compilesWithoutError()
-            .generatesSources(testSimpleFieldInjectionMultipleParameterizedClass_expected_java)
+            .generatesSources(testSimpleFieldInjectionMultipleParameterizedClass_expected)
     }
 
     @Test
@@ -1736,37 +1713,10 @@ class FieldMemberInjectorTest {
             .that(source)
             .processedWith(MemberInjectorProcessorProvider())
             .compilesWithoutError()
-            .generatesSources(testSimpleFieldInjectionMultipleParameterizedClass_expected_kt)
+            .generatesSources(testSimpleFieldInjectionMultipleParameterizedClass_expected)
     }
 
-    private val testSimpleFieldInjectionMultipleParameterizedClass_expected_kt = expectedKtSource(
-        "test/TestFieldInjection__MemberInjector",
-        """
-            package test
-            
-            import java.io.Reader
-            import kotlin.Any
-            import kotlin.Suppress
-            import kotlin.text.StringBuilder
-            import toothpick.MemberInjector
-            import toothpick.Scope
-            
-            @Suppress(
-              "ClassName",
-              "RedundantVisibilityModifier",
-              "UNCHECKED_CAST",
-            )
-            public class TestFieldInjection__MemberInjector :
-                MemberInjector<TestFieldInjection<Any?, StringBuilder, Reader>> {
-              public override fun inject(target: TestFieldInjection<Any?, StringBuilder, Reader>,
-                  scope: Scope) {
-                target.foo = scope.getInstance(Foo::class.java) as Foo
-              }
-            }
-            """
-    )
-
-    private val testSimpleFieldInjectionMultipleParameterizedClass_expected_java = expectedKtSource(
+    private val testSimpleFieldInjectionMultipleParameterizedClass_expected = expectedKtSource(
         "test/TestFieldInjection__MemberInjector",
         """
             package test
@@ -1781,8 +1731,7 @@ class FieldMemberInjectorTest {
               "UNCHECKED_CAST",
             )
             public class TestFieldInjection__MemberInjector : MemberInjector<TestFieldInjection<*, *, *>> {
-              public override fun inject(target: TestFieldInjection<*, *, *>,
-                  scope: Scope) {
+              public override fun inject(target: TestFieldInjection<*, *, *>, scope: Scope) {
                 target.foo = scope.getInstance(Foo::class.java) as Foo
               }
             }
