@@ -389,8 +389,8 @@ class GenericClassTest {
               "ClassName",
               "RedundantVisibilityModifier",
             )
-            public class TestGenericMemberInjection__Factory : Factory<TestGenericMemberInjection<Any>> {
-              private val memberInjector: MemberInjector<TestGenericMemberInjection<Any>> =
+            public class TestGenericMemberInjection__Factory : Factory<TestGenericMemberInjection<*>> {
+              private val memberInjector: MemberInjector<TestGenericMemberInjection<*>> =
                   TestGenericMemberInjection__MemberInjector()
 
               @Suppress("NAME_SHADOWING")

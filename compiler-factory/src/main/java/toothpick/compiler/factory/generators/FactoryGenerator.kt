@@ -80,6 +80,15 @@ internal class FactoryGenerator(
         return typedSourceClass
     }
 
+    private fun KSClassDeclaration.maybeStarParameterizedClassName(): TypeName {
+        return if (this.typeParameters.isEmpty()) {
+            toClassName()
+        } else {
+            val starList = List(typeParameters.size) { STAR }
+            toClassName().parameterizedBy(starList)
+        }
+    }
+
     private fun getTypeNameFrom(typeParam: KSTypeParameter, typeParameters: List<KSTypeParameter>): TypeName {
         val bound = typeParam.bounds.firstOrNull()
         if (bound?.element?.typeArguments?.isNotEmpty() == true) {
@@ -111,7 +120,7 @@ internal class FactoryGenerator(
                 .addOriginatingKSFile(sourceClass.containingFile!!)
                 .addModifiers(getNestingAwareModifier() ?: KModifier.PUBLIC)
                 .addSuperinterface(
-                    Factory::class.asClassName().parameterizedBy(parameterizedSourceClassname)
+                    Factory::class.asClassName().parameterizedBy(sourceClass.maybeStarParameterizedClassName())
                 )
                 .addAnnotation(
                     AnnotationSpec.builder(Suppress::class)
@@ -173,7 +182,7 @@ internal class FactoryGenerator(
                 ?.toClassName()
                 ?: return this
 
-        val superTypeClassNameWithGenerics = resolveClassWithGenerics(superTypeClass)
+        val superTypeClassNameWithGenerics = superTypeClass.maybeStarParameterizedClassName()
 
         PropertySpec
             .builder(
