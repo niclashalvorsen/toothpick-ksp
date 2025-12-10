@@ -7,6 +7,7 @@ import com.squareup.kotlinpoet.STAR
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
+import toothpick.compiler.common.generators.GenericSupportException.Companion.TOO_MANY_CONSTRAINTS
 
 object GenericsHelper {
     /**
@@ -38,10 +39,11 @@ object GenericsHelper {
      * E.g 3: "MyClass<Exception> will resolve to Exception
      * */
     private fun resolveTypeToFirstTypeBoundary(typeParam: KSTypeParameter, typeParameters: List<KSTypeParameter>): TypeName {
-        val bound = typeParam.bounds.firstOrNull()
-        if (bound?.element?.typeArguments?.isNotEmpty() == true) {
+        if (typeParam.bounds.count() > 1) throw GenericSupportException(TOO_MANY_CONSTRAINTS)
+        val firstConstraint = typeParam.bounds.firstOrNull()
+        if (firstConstraint?.element?.typeArguments?.isNotEmpty() == true) {
             // The bound is itself a generic, bound elsewhere in the statement
-            val boundArgs = bound.element!!.typeArguments.toList()
+            val boundArgs = firstConstraint.element!!.typeArguments.toList()
             val boundList: List<TypeName> = boundArgs.map { boundArg ->
                 boundArg.type?.let { type ->
                     // note: Matching on "toString" was a quick hack. Couldn't find the correct property to look up
@@ -51,13 +53,20 @@ object GenericsHelper {
                 } ?: STAR
             }
             try {
-                return bound.resolve().toClassName().parameterizedBy(boundList)
+                return firstConstraint.resolve().toClassName().parameterizedBy(boundList)
             } catch (ex: Exception) {
-                // todo should log warning here
-                return STAR
+                throw GenericSupportException("Unexpected exception while resolving type", ex)
             }
         } else {
-            return bound?.toTypeName() ?: STAR
+            return firstConstraint?.toTypeName() ?: STAR
         }
+    }
+}
+
+class GenericSupportException(message: String, cause: Exception? = null) : RuntimeException(message, cause) {
+    companion object {
+        const val TOO_MANY_CONSTRAINTS =
+            "Generic classes with 2 or more constraints is not supported at this time. Rewrite your class to have 1 or 0 constraints " +
+                    "for Toothpick injection support with KSP"
     }
 }

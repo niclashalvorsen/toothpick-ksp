@@ -1,13 +1,16 @@
 package toothpick.compiler.factory
 
 import org.junit.Test
+import toothpick.compiler.common.generators.GenericSupportException
 import toothpick.compiler.compilationAssert
 import toothpick.compiler.compilesWithoutError
 import toothpick.compiler.expectedKtSource
+import toothpick.compiler.failsToCompile
 import toothpick.compiler.generatesSources
 import toothpick.compiler.ktSource
 import toothpick.compiler.processedWith
 import toothpick.compiler.that
+import toothpick.compiler.withLogContaining
 
 class FactoryGenericSupportTest {
     @Test
@@ -411,5 +414,26 @@ class FactoryGenericSupportTest {
             .processedWith(FactoryProcessorProvider())
             .compilesWithoutError()
             .generatesSources(expectedResult)
+    }
+
+    @Test
+    fun `generic class with two constraints shall throw exception`() {
+        val source = ktSource(
+            name = "test/GenericClassTwoConstraints__Factory",
+            contents = """
+                package test
+
+                import toothpick.InjectConstructor
+
+                @InjectConstructor
+                class GenericClassTwoConstraints<T>(val text: String) where T: java.lang.Exception, T: java.lang.ConstantGroup
+            """
+        )
+
+        compilationAssert()
+            .that(source)
+            .processedWith(FactoryProcessorProvider())
+            .failsToCompile()
+            .withLogContaining(GenericSupportException.TOO_MANY_CONSTRAINTS)
     }
 }
