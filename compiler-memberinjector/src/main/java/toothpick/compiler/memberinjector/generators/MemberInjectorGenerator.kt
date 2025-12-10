@@ -19,29 +19,16 @@ package toothpick.compiler.memberinjector.generators
 
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.google.devtools.ksp.symbol.KSTypeParameter
-import com.google.devtools.ksp.symbol.KSTypeReference
-import com.squareup.kotlinpoet.AnnotationSpec
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.ParameterizedTypeName
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.STAR
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.asClassName
-import com.squareup.kotlinpoet.jvm.jvmWildcard
 import com.squareup.kotlinpoet.ksp.addOriginatingKSFile
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toKModifier
 import com.squareup.kotlinpoet.ksp.toTypeName
-import com.squareup.kotlinpoet.ksp.toTypeParameterResolver
 import toothpick.MemberInjector
 import toothpick.Scope
 import toothpick.compiler.common.generators.TPCodeGenerator
+import toothpick.compiler.common.generators.maybeStarParameterizedClassName
 import toothpick.compiler.common.generators.memberInjectorClassName
 import toothpick.compiler.common.generators.targets.VariableInjectionTarget
 import toothpick.compiler.common.generators.targets.getInvokeScopeGetMethodWithNameCodeBlock
@@ -67,7 +54,6 @@ internal class MemberInjectorGenerator(
         }
     }
 
-    private val parameterizedSourceClass: TypeName = sourceClass.maybeParameterizedClassName()
     private val starParameterizedSourceClass: TypeName = sourceClass.maybeStarParameterizedClassName()
     val sourceClassName: ClassName = sourceClass.toClassName()
     val generatedClassName: ClassName = sourceClassName.memberInjectorClassName
@@ -93,68 +79,6 @@ internal class MemberInjectorGenerator(
                 .build()
         )
     }
-
-    private fun KSClassDeclaration.maybeParameterizedClassName(): TypeName {
-        return if (this.typeParameters.isEmpty()) {
-            toClassName()
-        } else {
-            val typeArguments: List<TypeName> = this.typeParameters.map { typeParam ->
-                try {
-                    getTypeNameFrom(typeParam, typeParameters)
-                } catch (ex: Exception) {
-                    // todo log warning
-                    STAR
-                }
-            }
-            toClassName().parameterizedBy(typeArguments)
-        }
-    }
-
-    private fun KSClassDeclaration.maybeStarParameterizedClassName(): TypeName {
-        return if (this.typeParameters.isEmpty()) {
-            toClassName()
-        } else {
-            val starList = List(typeParameters.size) { STAR }
-            toClassName().parameterizedBy(starList)
-        }
-    }
-
-
-    private fun getTypeNameFrom(typeParam: KSTypeParameter, typeParameters: List<KSTypeParameter>): TypeName {
-        val bound = typeParam.bounds.firstOrNull()
-        if (bound?.element?.typeArguments?.isNotEmpty() == true) {
-            // The bound is itself a generic, bound elsewhere in the statement
-            val boundArgs = bound.element!!.typeArguments.toList()
-            val boundList: List<TypeName> = boundArgs.map { boundArg ->
-                boundArg.type?.let { type ->
-                    // note: Matching on "toString" was a quick hack. Couldn't find the correct property to look up
-                    val matchedTypeParam: KSTypeParameter? = typeParameters.firstOrNull { it.toString() == type.toString() }
-                    // limitation as of now: Only supporting single boundary
-                    matchedTypeParam?.bounds?.firstOrNull()?.toTypeName() ?: STAR
-                } ?: STAR
-            }
-            try {
-                return bound.resolve().toClassName().parameterizedBy(boundList)
-            } catch (ex: Exception) {
-                // todo should log warning here
-                return STAR
-            }
-        } else {
-            return bound?.toTypeName() ?: STAR
-        }
-    }
-/*
-    class MyResolver(override val parametersMap: Map<String, TypeVariableName>) : TypeParameterResolver {
-        constructor(params: List<KSTypeParameter>) : this(
-            params.associate { param: KSTypeParameter ->
-                param.toString() to param.bounds.firstOrNull()?.toTypeName()
-            }
-        )
-
-        override fun get(index: String): TypeVariableName {
-            return parametersMap[index] ?: throw IllegalStateException("Could not resolve type param $index")
-        }
-    }*/
 
     private fun TypeSpec.Builder.emitSuperMemberInjectorFieldIfNeeded(): TypeSpec.Builder = apply {
         if (superClassThatNeedsInjection == null) {

@@ -19,28 +19,18 @@ package toothpick.compiler.factory.generators
 
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.google.devtools.ksp.symbol.KSTypeParameter
-import com.squareup.kotlinpoet.AnnotationSpec
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.STAR
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.ksp.addOriginatingKSFile
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toKModifier
-import com.squareup.kotlinpoet.ksp.toTypeName
 import toothpick.Factory
 import toothpick.MemberInjector
 import toothpick.Scope
+import toothpick.compiler.common.generators.GenericsHelper
 import toothpick.compiler.common.generators.TPCodeGenerator
 import toothpick.compiler.common.generators.factoryClassName
+import toothpick.compiler.common.generators.maybeStarParameterizedClassName
 import toothpick.compiler.common.generators.memberInjectorClassName
 import toothpick.compiler.common.generators.targets.getInvokeScopeGetMethodWithNameCodeBlock
 import toothpick.compiler.common.generators.targets.getParamType
@@ -62,56 +52,7 @@ internal class FactoryGenerator(
     val sourceClassName: ClassName = sourceClass.toClassName()
     val generatedClassName: ClassName = sourceClassName.factoryClassName
 
-    val parameterizedSourceClassname: TypeName= resolveClassWithGenerics(sourceClass)
-
-    private fun resolveClassWithGenerics(clazz: KSClassDeclaration): TypeName {
-        val clazzName = clazz.toClassName()
-        if (clazz.typeParameters.isEmpty()) return clazzName
-        val genericTypeNames: List<TypeName> = clazz.typeParameters.map { type ->
-            val bounds = type.bounds.toList()
-            if (bounds.isEmpty()) {
-                STAR
-            } else {
-                getTypeNameFrom(type, clazz.typeParameters)
-            }
-        }
-
-        val typedSourceClass: TypeName = clazzName.parameterizedBy(genericTypeNames)
-        return typedSourceClass
-    }
-
-    private fun KSClassDeclaration.maybeStarParameterizedClassName(): TypeName {
-        return if (this.typeParameters.isEmpty()) {
-            toClassName()
-        } else {
-            val starList = List(typeParameters.size) { STAR }
-            toClassName().parameterizedBy(starList)
-        }
-    }
-
-    private fun getTypeNameFrom(typeParam: KSTypeParameter, typeParameters: List<KSTypeParameter>): TypeName {
-        val bound = typeParam.bounds.firstOrNull()
-        if (bound?.element?.typeArguments?.isNotEmpty() == true) {
-            // The bound is itself a generic, bound elsewhere in the statement
-            val boundArgs = bound.element!!.typeArguments.toList()
-            val boundList: List<TypeName> = boundArgs.map { boundArg ->
-                boundArg.type?.let { type ->
-                    // note: Matching on "toString" was a quick hack. Couldn't find the correct property to look up
-                    val matchedTypeParam: KSTypeParameter? = typeParameters.firstOrNull { it.toString() == type.toString() }
-                    // limitation as of now: Only supporting single boundary
-                    matchedTypeParam?.bounds?.firstOrNull()?.toTypeName() ?: STAR
-                } ?: STAR
-            }
-            try {
-                return bound.resolve().toClassName().parameterizedBy(boundList)
-            } catch (ex: Exception) {
-                // todo should log warning here
-                return STAR
-            }
-        } else {
-            return bound?.toTypeName() ?: STAR
-        }
-    }
+    val parameterizedSourceClassname: TypeName = GenericsHelper.resolveClassWithGenerics(sourceClass)
 
     override fun brewCode(): FileSpec {
         return FileSpec.get(
