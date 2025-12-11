@@ -50,7 +50,7 @@ subprojects {
                     version = extra["VERSION_NAME"] as String
 
                     pom {
-                        packaging = extra["POM_PACKAGING"] as String
+                        packaging = (extra["POM_PACKAGING"] as String).lowercase()
 
                         name.set(extra["POM_NAME"] as String)
                         description.set(extra["POM_DESCRIPTION"] as String)
