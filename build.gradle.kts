@@ -72,8 +72,12 @@ subprojects {
 
                         developers {
                             developer {
-                                id.set(extra["POM_DEVELOPER_ID"] as String)
-                                name.set(extra["POM_DEVELOPER_NAME"] as String)
+                                id.set(extra["POM_DEVELOPER1_ID"] as String)
+                                name.set(extra["POM_DEVELOPER1_NAME"] as String)
+                            }
+                            developer {
+                                id.set(extra["POM_DEVELOPER2_ID"] as String)
+                                name.set(extra["POM_DEVELOPER2_NAME"] as String)
                             }
                         }
 
